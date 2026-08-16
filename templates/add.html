@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+    <form method="post" class="add-form">
+        <label>Name</label>
+        <input type="text" name="name" placeholder="bv. Home Assistant" value="{{ app_data.name if app_data else '' }}" required>
+
+        <label>Group</label>
+        <input type="text" name="group" list="group-list" placeholder="bv. Media" value="{{ app_data.group if app_data else '' }}">
+        <datalist id="group-list">
+            {% for g in existing_groups %}
+                <option value="{{ g }}">
+            {% endfor %}
+        </datalist>
+
+        <label>Local (+ port nr)</label>
+        <input type="text" name="local_ip" placeholder="192.168.1.50:8123" value="{{ app_data.local_ip if app_data else '' }}">
+
+        <label>Domain</label>
+        <input type="text" name="domain" placeholder="home.mydomain.nl" value="{{ app_data.domain if app_data else '' }}">
+
+        <p class="hint">The icon will be added automaticly.</p>
+        <button type="submit" class="btn-submit">{{ "Save changes" if app_data else "Add website" }}</button>
+    </form>
+{% endblock %}

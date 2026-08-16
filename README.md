@@ -7,3 +7,6 @@
 Self hosted dashboard for managing and checking your server
 
 ## ⚙️ Features
+- Add apps and websites with automatic icon detection and assignment
+- Add both local and globally accessible links for each app
+- Easily create and manage groups for organizing apps and websites
