@@ -13,8 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
 COPY wsgi.py .
-COPY templates ./templates
-COPY static ./static
+COPY app ./app
 
-EXPOSE 5001
-CMD ["gunicorn", "--bind", "0.0.0.0:5001", "--workers", "1", "--timeout", "0", "wsgi:app"]
+EXPOSE 5000
+CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:5000", "wsgi:app"]

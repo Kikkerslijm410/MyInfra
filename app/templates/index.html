@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyInfra</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
+    <link rel="icon" type="image/png" href="/static/favicon/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/static/favicon/favicon.svg" />
+    <link rel="shortcut icon" href="/static/favicon/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="MyInfra" />
+    <link rel="manifest" href="/static/favicon/site.webmanifest" />
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="brand"><i class="fa-solid fa-server"></i> MyInfra</div>
+
+        <form id="search-form" class="header-search">
+            <span id="search-engine-icon" class="engine-icon"><i class="fa-brands fa-google"></i></span>
+            <input id="search-input" type="text" placeholder="Search the web..." autocomplete="off">
+            <button type="submit" class="icon-btn" title="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
+        </form>
+
+        <button id="settings-btn" class="icon-btn" title="Settings"><i class="fa-solid fa-gear"></i></button>
+    </header>
+
+    <div class="app-shell">
+        <main>
+            <!-- WEBSITES SECTION -->
+            <section id="section-websites" class="page-section">
+            <div class="section-header">
+                <h2><i class="fa-solid fa-globe"></i> Websites</h2>
+                <button id="add-website-btn" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add website</button>
+            </div>
+            <div id="groups-container"></div>
+            </section>
+
+            <!-- CHECKS SECTION -->
+            <section id="section-checks" class="page-section">
+            <div class="section-header">
+                <h2><i class="fa-solid fa-shield-halved"></i> Checks</h2>
+            </div>
+            <div id="checks-container" class="checks-list"></div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <a href="https://github.com/Kikkerslijm410/MyInfra" target="_blank" class="github-link">
+                <i class="fab fa-github"></i> GitHub
+            </a>
+            <a href="https://github.com/Kikkerslijm410?tab=repositories" target="_blank" class="github-link">
+                <i class="fa-solid fa-code"></i> More projects
+            </a>
+        </footer>
+    </div>
+
+    <!-- ADD/EDIT APP MODAL -->
+    <div id="item-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <h3 id="item-modal-title">Add app</h3>
+
+            <label>Predefined app</label>
+            <select id="predefined-select">
+                <option value="">-- Custom --</option>
+            </select>
+
+            <label>Name</label>
+            <input id="item-name" type="text" placeholder="e.g. MeTify">
+
+            <label>Icon</label>
+            <div class="icon-picker">
+                <div class="icon-preview" id="icon-preview">
+                    <i class="fa-solid fa-image"></i>
+                </div>
+                <div class="icon-picker-fields">
+                    <label class="upload-btn" for="icon-file-input">
+                        <i class="fa-solid fa-upload"></i> Upload image
+                    </label>
+                    <input id="icon-file-input" type="file" accept="image/*" class="hidden">
+                    <span id="icon-filename-label" class="icon-filename-label"></span>
+                </div>
+            </div>
+            <input type="hidden" id="item-icon">
+
+            <label>Group</label>
+            <input id="item-group-name" list="group-options" type="text" placeholder="Existing or new group name">
+            <datalist id="group-options"></datalist>
+
+            <div class="field-row">
+                <div>
+                    <label>Local IP (optional)</label>
+                    <input id="item-local-ip" type="text" placeholder="192.168.1.10">
+                </div>
+                <div class="field-small">
+                    <label>Port</label>
+                    <input id="item-port" type="text" placeholder="8989">
+                </div>
+            </div>
+
+            <label>Public domain (optional)</label>
+            <input id="item-domain" type="text" placeholder="app.example.com">
+
+            <input type="hidden" id="item-id">
+
+            <div class="modal-actions">
+                <button id="item-delete-btn" class="btn btn-danger hidden"><i class="fa-solid fa-trash"></i></button>
+                <button id="item-cancel-btn" class="btn">Cancel</button>
+                <button id="item-save-btn" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <h3><i class="fa-solid fa-gear"></i> Settings</h3>
+
+            <h4>Colors</h4>
+            <div class="color-grid">
+                <label>Primary <input type="color" id="color-primary"></label>
+                <label>Background <input type="color" id="color-background"></label>
+                <label>Surface <input type="color" id="color-surface"></label>
+                <label>Text <input type="color" id="color-text"></label>
+            </div>
+
+            <h4>Search engine</h4>
+            <select id="settings-search-engine">
+                <option value="google">Google</option>
+                <option value="bing">Bing</option>
+                <option value="brave">Brave</option>
+                <option value="duckduckgo">DuckDuckGo</option>
+                <option value="ecosia">Ecosia</option>
+                <option value="startpage">Startpage</option>
+                <option value="yahoo">Yahoo</option>
+            </select>
+
+            <h4>Checks</h4>
+            <label class="checkbox-row">
+                <input type="checkbox" id="check-outbound-ip"> Outbound IP change check
+            </label>
+
+            <div class="modal-actions">
+                <button id="settings-cancel-btn" class="btn">Cancel</button>
+                <button id="settings-save-btn" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
