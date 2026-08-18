@@ -14,6 +14,20 @@ Self hosted dashboard for managing and checking your server
 
 ---
 
+## 🖥️ Run using Proxmox
+
+### 1. Build and run
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Kikkerslijm410/MyInfra/refs/heads/main/installers/proxmox-install.sh)"
+```
+
+### 2. Update
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Kikkerslijm410/MyInfra/refs/heads/main/installers/proxmox-update.sh)"
+```
+
+---
+
 ## 📡 API Endpoints
 
 ### Settings
