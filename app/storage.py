@@ -6,6 +6,39 @@ from datetime import datetime, timezone
 
 _lock = threading.Lock()
 
+CHECKS = [
+    {
+        "id": "outbound_ip",
+        "name": "Outbound IP monitor",
+        "icon": "fa-globe",
+        "endpoint": "/api/checks/outbound-ip",
+        "clear_endpoint": "/api/checks/outbound-ip/clear"
+    },
+    {
+        "id": "ssl_expiry",
+        "name": "SSL certificate expiry",
+        "icon": "fa-lock",
+        "endpoint": "/api/checks/ssl-expiry"
+    },
+    {
+        "id": "uptime",
+        "name": "App availability",
+        "icon": "fa-heart-pulse",
+        "endpoint": "/api/checks/uptime"
+    }
+]
+
+def _default_check_state(check_id):
+    if check_id == "outbound_ip":
+        return {"current_ip": None, "previous_ip": None, "changed": False, "last_checked": None}
+    return {"last_checked": None, "results": []}
+
+def _default_checks_layout():
+    columns = [[] for _ in range(3)]
+    for idx, c in enumerate(CHECKS):
+        columns[idx % 3].append(c["id"])
+    return columns
+
 DEFAULT_DATA = {
     "settings": {
         "theme": "dark",
@@ -16,19 +49,11 @@ DEFAULT_DATA = {
             "text": "#e2e8f0"
         },
         "search_engine": "google",
-        "checks_enabled": {
-            "outbound_ip": True
-        }
+        "checks_enabled": {c["id"]: True for c in CHECKS},
+        "checks_layout": _default_checks_layout()
     },
     "groups": [],
-    "checks_state": {
-        "outbound_ip": {
-            "current_ip": None,
-            "previous_ip": None,
-            "changed": False,
-            "last_checked": None
-        }
-    }
+    "checks_state": {c["id"]: _default_check_state(c["id"]) for c in CHECKS}
 }
 
 PREDEFINED_APPS = [
@@ -69,8 +94,35 @@ def load_data(path):
         _ensure_file(path)
         with open(path, "r") as f:
             data = json.load(f)
+
         for key, value in DEFAULT_DATA.items():
             data.setdefault(key, value)
+
+        for check in CHECKS:
+            data["settings"]["checks_enabled"].setdefault(check["id"], True)
+            data["checks_state"].setdefault(check["id"], _default_check_state(check["id"]))
+
+        known_ids = {c["id"] for c in CHECKS}
+        layout = data["settings"].get("checks_layout")
+        if not layout or not isinstance(layout, list):
+            layout = _default_checks_layout()
+
+        seen = set()
+        cleaned = []
+        for col in layout:
+            new_col = [cid for cid in col if cid in known_ids and cid not in seen]
+            seen.update(new_col)
+            cleaned.append(new_col)
+
+        while len(cleaned) < 3:
+            cleaned.append([])
+
+        for cid in known_ids - seen:
+            shortest = min(cleaned, key=len)
+            shortest.append(cid)
+
+        data["settings"]["checks_layout"] = cleaned
+
         return data
 
 def save_data(path, data):

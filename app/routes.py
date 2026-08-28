@@ -1,4 +1,5 @@
 from flask import Blueprint, current_app, jsonify, request, render_template, url_for
+from concurrent.futures import ThreadPoolExecutor
 from .storage import *
 from .checks import *
 
@@ -10,6 +11,11 @@ def _data():
 
 def _save(data):
     save_data(current_app.config["DATA_FILE"], data)
+
+def _all_items(data):
+    for g in data["groups"]:
+        for it in g["items"]:
+            yield it
 
 # ---------- Pages ----------
 @bp.route("/")
@@ -223,6 +229,33 @@ def api_upload():
     return jsonify({"url": url})
 
 # ---------- Checks ----------
+@bp.route("/api/checks/meta")
+def api_checks_meta():
+    return jsonify(CHECKS)
+
+@bp.route("/api/checks/reorder", methods=["POST"])
+def api_checks_reorder():
+    data = _data()
+    body = request.get_json(force=True) or {}
+    layout = body.get("layout", [])
+    known_ids = {c["id"] for c in CHECKS}
+
+    seen = set()
+    cleaned = []
+    for col in layout:
+        new_col = [cid for cid in col if cid in known_ids and cid not in seen]
+        seen.update(new_col)
+        cleaned.append(new_col)
+
+    if not cleaned:
+        cleaned = [[]]
+    for cid in known_ids - seen:
+        min(cleaned, key=len).append(cid)
+
+    data["settings"]["checks_layout"] = cleaned
+    _save(data)
+    return jsonify({"ok": True})
+
 @bp.route("/api/checks/outbound-ip", methods=["GET"])
 def api_check_outbound_ip():
     data = _data()
@@ -231,7 +264,7 @@ def api_check_outbound_ip():
 
     state = data["checks_state"]["outbound_ip"]
     try:
-        ip = get_outbound_ip()
+        ip = check_outbound_ip()
     except Exception as e:
         return jsonify({"error": str(e)}), 502
 
@@ -252,5 +285,58 @@ def api_check_outbound_ip_clear():
     state = data["checks_state"]["outbound_ip"]
     state["changed"] = False
     state["previous_ip"] = None
+    _save(data)
+    return jsonify(state)
+
+@bp.route("/api/checks/ssl-expiry", methods=["GET"])
+def api_check_ssl_expiry():
+    data = _data()
+    if not data["settings"]["checks_enabled"].get("ssl_expiry", True):
+        return jsonify({"error": "check disabled"}), 400
+
+    results = []
+    for item in _all_items(data):
+        if not item.get("domain"):
+            continue
+        entry = {"item_id": item["id"], "name": item["name"], "domain": item["domain"]}
+        try:
+            info = check_ssl_expiry(item["domain"])
+            entry.update(info)
+            entry["error"] = None
+        except Exception as e:
+            entry["error"] = str(e)
+        results.append(entry)
+
+    state = data["checks_state"]["ssl_expiry"]
+    state["results"] = results
+    state["last_checked"] = now_iso()
+    _save(data)
+    return jsonify(state)
+
+@bp.route("/api/checks/uptime", methods=["GET"])
+def api_check_uptime():
+    data = _data()
+    if not data["settings"]["checks_enabled"].get("uptime", True):
+        return jsonify({"error": "check disabled"}), 400
+
+    jobs = []  # (item_id, name, kind, url)
+    for item in _all_items(data):
+        if item.get("local_ip"):
+            port = f":{item['port']}" if item.get("port") else ""
+            jobs.append((item["id"], item["name"], "local", f"http://{item['local_ip']}{port}"))
+        if item.get("domain"):
+            jobs.append((item["id"], item["name"], "domain", f"https://{item['domain']}"))
+
+    results_map = {}
+    if jobs:
+        with ThreadPoolExecutor(max_workers=min(10, len(jobs))) as executor:
+            check_results = executor.map(lambda j: check_reachable(j[3]), jobs)
+            for (item_id, name, kind, _url), result in zip(jobs, check_results):
+                entry = results_map.setdefault(item_id, {"item_id": item_id, "name": name})
+                entry[kind] = result
+
+    state = data["checks_state"]["uptime"]
+    state["results"] = list(results_map.values())
+    state["last_checked"] = now_iso()
     _save(data)
     return jsonify(state)

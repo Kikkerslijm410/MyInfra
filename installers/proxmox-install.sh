@@ -143,7 +143,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/myinfra
-ExecStart=/opt/myinfra/.venv/bin/gunicorn --bind 0.0.0.0:5000 --workers 1 wsgi:app
+ExecStart=/opt/myinfra/.venv/bin/gunicorn --bind 0.0.0.0:5000 --workers 2 --threads 4 --worker-class gthread wsgi:app
 Restart=always
 RestartSec=5
 Environment=PORT=5000
